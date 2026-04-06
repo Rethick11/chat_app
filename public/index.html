@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LiveRoom</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0e0e11;
+      --surface: #17171c;
+      --surface2: #1f1f27;
+      --border: #2a2a35;
+      --accent: #7c6af7;
+      --accent2: #a78bfa;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --success: #34d399;
+      --danger: #f87171;
+      --mono: 'Space Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── SCREENS ── */
+    .screen { display: none; height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ── LANDING SCREEN ── */
+    #landing {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #landing::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(124,106,247,0.12) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .brand {
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .landing-title {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 600;
+      line-height: 1.1;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .landing-title span {
+      color: var(--accent2);
+    }
+
+    .landing-sub {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 48px;
+      text-align: center;
+    }
+
+    .cards {
+      display: flex;
+      gap: 16px;
+      z-index: 1;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 28px 24px;
+      width: 240px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover { border-color: var(--accent); }
+
+    .card-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 13px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: var(--sans);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+
+    .input:focus { border-color: var(--accent); }
+    .input::placeholder { color: var(--muted); }
+
+    .btn {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      font-family: var(--sans);
+      transition: opacity 0.15s, transform 0.1s;
+      width: 100%;
+    }
+
+    .btn:hover { opacity: 0.88; }
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); }
+
+    /* ── ROOM SCREEN ── */
+    #room {
+      flex-direction: column;
+    }
+
+    .room-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .room-info { display: flex; flex-direction: column; gap: 2px; }
+
+    .room-name {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .room-key {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+    }
+
+    .room-meta { display: flex; align-items: center; gap: 16px; }
+
+    .user-count {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot-live {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .host-badge {
+      font-size: 11px;
+      font-family: var(--mono);
+      background: rgba(124,106,247,0.15);
+      color: var(--accent2);
+      padding: 3px 9px;
+      border-radius: 20px;
+      border: 1px solid rgba(124,106,247,0.3);
+    }
+
+    .room-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 220px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 8px;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .user-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .user-name { font-size: 13px; color: var(--text); }
+    .user-role { font-size: 10px; color: var(--muted); font-family: var(--mono); }
+
+    /* ── MAIN AREA ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── IMAGE VIEWER ── */
+    #image-viewer {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: var(--bg);
+      position: relative;
+    }
+
+    #current-image {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      object-fit: contain;
+      display: none;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+    }
+
+    .empty-icon {
+      width: 56px; height: 56px;
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .empty-state p { font-size: 14px; }
+
+    /* ── UPLOAD BAR (host only) ── */
+    #upload-bar {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      display: none;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    #upload-bar.visible { display: flex; }
+
+    #file-input { display: none; }
+
+    .upload-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      font-family: var(--sans);
+      border: none;
+    }
+
+    .upload-btn:hover { opacity: 0.85; }
+
+    .upload-hint { font-size: 12px; color: var(--muted); }
+
+    /* ── ACTIVITY LOG ── */
+    #activity {
+      width: 220px;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .activity-header {
+      padding: 14px 16px 10px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #activity-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .log-item {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 6px 8px;
+      border-radius: 6px;
+      line-height: 1.5;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .log-item.join { color: var(--success); }
+    .log-item.leave { color: var(--danger); }
+    .log-item.image { color: var(--accent2); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #toast.error { border-color: var(--danger); color: var(--danger); }
+    #toast.success { border-color: var(--success); color: var(--success); }
+
+    /* ── NEW IMAGE FLASH ── */
+    .image-flash {
+      position: absolute;
+      inset: 0;
+      background: rgba(124,106,247,0.08);
+      border-radius: 0;
+      animation: flash 0.6s ease forwards;
+      pointer-events: none;
+    }
+
+    @keyframes flash {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    * {
+      scrollbar-width: thin;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- ── LANDING SCREEN ── -->
+<div class="screen active" id="landing">
+  <p class="brand">LiveRoom</p>
+  <h1 class="landing-title">Share images<br><span>in real time</span></h1>
+  <p class="landing-sub">Create a room, share the key, broadcast live.</p>
+
+  <div class="cards">
+    <!-- Create Room -->
+    <div class="card">
+      <p class="card-label">Host</p>
+      <p class="card-title">Create a room</p>
+      <input class="input" id="create-username" placeholder="Your name" />
+      <input class="input" id="create-roomid" placeholder="Room key (e.g. abc123)" />
+      <button class="btn btn-primary" onclick="createRoom()">Create Room</button>
+    </div>
+
+    <!-- Join Room -->
+    <div class="card">
+      <p class="card-label">Guest</p>
+      <p class="card-title">Join a room</p>
+      <input class="input" id="join-username" placeholder="Your name" />
+      <input class="input" id="join-roomid" placeholder="Enter room key" />
+      <button class="btn btn-outline" onclick="joinRoom()">Join Room</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ROOM SCREEN ── -->
+<div class="screen" id="room">
+  <div class="room-header">
+    <div class="room-info">
+      <span class="room-name" id="header-room-name">Room</span>
+      <span class="room-key" id="header-room-key"></span>
+    </div>
+    <div class="room-meta">
+      <div class="user-count">
+        <div class="dot-live"></div>
+        <span id="user-count">1 online</span>
+      </div>
+      <span class="host-badge" id="host-badge" style="display:none">HOST</span>
+    </div>
+  </div>
+
+  <div class="room-body">
+    <!-- Sidebar: Users -->
+    <div class="sidebar">
+      <p class="sidebar-label">In this room</p>
+      <div id="user-list"></div>
+    </div>
+
+    <!-- Main: Image viewer -->
+    <div class="main">
+      <div id="image-viewer">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">+</div>
+          <p>Waiting for host to share an image...</p>
+        </div>
+        <img id="current-image" alt="Shared image" />
+      </div>
+
+      <!-- Upload bar — only visible to host -->
+      <div id="upload-bar">
+        <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload(event)" />
+        <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+          Upload Image
+        </button>
+        <span class="upload-hint">Only you can share images as the host</span>
+      </div>
+    </div>
+
+    <!-- Activity log -->
+    <div id="activity">
+      <div class="activity-header">Activity</div>
+      <div id="activity-log"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+
+  let myUsername = '';
+  let myRoom = '';
+  let isHost = false;
+  let userList = [];
+
+  // ── HELPERS ──
+
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'show ' + type;
+    setTimeout(() => t.className = '', 3000);
+  }
+
+  function log(msg, type = '') {
+    const el = document.createElement('div');
+    el.className = 'log-item ' + type;
+    el.textContent = msg;
+    document.getElementById('activity-log').appendChild(el);
+    document.getElementById('activity-log').scrollTop = 99999;
+  }
+
+  function renderUsers() {
+    const list = document.getElementById('user-list');
+    list.innerHTML = userList.map(u => `
+      <div class="user-item">
+        <div class="avatar" style="background:${strColor(u.username)}">${u.username[0].toUpperCase()}</div>
+        <div>
+          <div class="user-name">${u.username}</div>
+          <div class="user-role">${u.isHost ? 'host' : 'guest'}</div>
+        </div>
+      </div>
+    `).join('');
+    document.getElementById('user-count').textContent = `${userList.length} online`;
+  }
+
+  function strColor(str) {
+    const colors = ['#7c6af7','#34d399','#f87171','#fbbf24','#60a5fa','#a78bfa','#f472b6'];
+    let hash = 0;
+    for (let c of str) hash = c.charCodeAt(0) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  function goToRoom(roomId, username, host) {
+    myRoom = roomId;
+    myUsername = username;
+    isHost = host;
+
+    document.getElementById('header-room-name').textContent = roomId;
+    document.getElementById('header-room-key').textContent = 'KEY: ' + roomId.toUpperCase();
+    document.getElementById('host-badge').style.display = host ? 'inline-block' : 'none';
+    if (host) document.getElementById('upload-bar').classList.add('visible');
+
+    document.getElementById('landing').classList.remove('active');
+    document.getElementById('room').classList.add('active');
+  }
+
+  // ── ACTIONS ──
+
+  function createRoom() {
+    const username = document.getElementById('create-username').value.trim();
+    const roomId = document.getElementById('create-roomid').value.trim();
+    if (!username || !roomId) return showToast('Fill in both fields', 'error');
+    socket.emit('create-room', roomId, username);
+  }
+
+  function joinRoom() {
+    const username = document.getElementById('join-username').value.trim();
+    const roomId = document.getElementById('join-roomid').value.trim();
+    if (!username || !roomId) return showToast('Fill in both fields', 'error');
+    socket.emit('join-room', roomId, username);
+  }
+
+  function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return showToast('Only image files allowed', 'error');
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      socket.emit('upload-image', myRoom, reader.result);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
+
+  // ── SOCKET EVENTS ──
+
+  socket.on('room-created', (roomId) => {
+    const username = document.getElementById('create-username').value.trim();
+    userList = [{ username, isHost: true }];
+    goToRoom(roomId, username, true);
+    log('You created the room', 'join');
+    showToast('Room created! Share the key: ' + roomId, 'success');
+  });
+
+  socket.on('user-joined', (data) => {
+    userList = data.users.map(u => ({
+        username: u.username,
+        isHost: u.id === data.creator  
+    }));
+    renderUsers();
+    log(data.name + ' joined', 'join');
+    showToast(data.name + ' joined the room');
+
+    if (!isHost) {
+      const username = document.getElementById('join-username').value.trim();
+      const roomId = document.getElementById('join-roomid').value.trim();
+      if (!myRoom) {
+        userList = [{ username, isHost: false }];
+        goToRoom(roomId, username, false);
+      }
+    }
+  });
+
+  socket.on('new-image', (imageData) => {
+    const img = document.getElementById('current-image');
+    const empty = document.getElementById('empty-state');
+    const viewer = document.getElementById('image-viewer');
+
+    img.src = imageData;
+    img.style.display = 'block';
+    empty.style.display = 'none';
+
+    const flash = document.createElement('div');
+    flash.className = 'image-flash';
+    viewer.appendChild(flash);
+    setTimeout(() => flash.remove(), 700);
+
+    log('New image shared', 'image');
+    if (!isHost) showToast('New image from host');
+  });
+
+  socket.on('room-closed', (msg) => {
+    showToast(msg, 'error');
+    log('Room closed by host', 'leave');
+    setTimeout(() => {
+      document.getElementById('room').classList.remove('active');
+      document.getElementById('landing').classList.add('active');
+      userList = [];
+      myRoom = '';
+      isHost = false;
+      document.getElementById('current-image').style.display = 'none';
+      document.getElementById('empty-state').style.display = 'flex';
+      document.getElementById('upload-bar').classList.remove('visible');
+    }, 2000);
+  });
+
+  socket.on('error', (msg) => {
+    showToast(msg, 'error');
+  });
+
+  // Handle guest joining (self)
+  const _origJoin = joinRoom;
+  socket.on('connect', () => {});
+
+  // Fix: emit join-room and handle own entry
+  function joinRoom() {
+    const username = document.getElementById('join-username').value.trim();
+    const roomId = document.getElementById('join-roomid').value.trim();
+    if (!username || !roomId) return showToast('Fill in both fields', 'error');
+
+    socket.emit('join-room', roomId, username);
+
+    socket.once('user-joined', () => {
+      if (!myRoom) {
+        userList = [{ username, isHost: false }];
+        goToRoom(roomId, username, false);
+        log('You joined the room', 'join');
+      }
+    });
+  }
+</script>
+</body>
+</html>
